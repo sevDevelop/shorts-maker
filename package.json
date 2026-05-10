@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "npm --prefix server run start:dev",
-    "dev:client": "npm --prefix client run dev",
-    "build": "npm --prefix client run build && npm --prefix server run build"
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
+    "dev:server": "pnpm --filter server run start:dev",
+    "dev:client": "pnpm --filter client run dev",
+    "build": "pnpm --filter client run build && pnpm --filter server run build"
   },
   "keywords": [],
   "author": "",
