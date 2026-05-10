@@ -1,4 +1,4 @@
-import { ScriptResult } from '../types';
+import type { ScriptResult } from '../types';
 
 interface Props {
   script: ScriptResult;

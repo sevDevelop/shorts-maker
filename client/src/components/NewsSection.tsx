@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { fetchNews, generateScript } from '../api';
-import { NewsItem, ScriptResult } from '../types';
+import type { NewsItem, ScriptResult } from '../types';
 
 const CATEGORIES = ['기술', '경제', '세계', '엔터'];
 

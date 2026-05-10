@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { searchVideos, uploadAudio, startGenerate } from '../api';
-import { VideoItem, ScriptResult } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import type { VideoItem, ScriptResult } from '../types';
 
 interface Props {
   bgKeyword: string;
@@ -52,7 +51,7 @@ export default function VideoSection({ bgKeyword, script, onGenerate, onOutputRe
         uploadedAudioPath = uploadRes.path;
       }
 
-      const jobId = uuidv4();
+      const jobId = crypto.randomUUID();
 
       const es = new EventSource(`http://localhost:3001/api/generate/progress/${jobId}`);
       es.onmessage = (e) => {

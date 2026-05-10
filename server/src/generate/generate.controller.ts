@@ -1,8 +1,8 @@
-import { Controller, Post, Body, Get, Param, Sse } from '@nestjs/common';
+import { Controller, Post, Body, Param, Sse } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { GenerateService } from './generate.service';
 import { ProgressService } from '../progress/progress.service';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Controller('generate')
 export class GenerateController {
@@ -13,7 +13,7 @@ export class GenerateController {
 
   @Post()
   async startGenerate(@Body() body: any) {
-    const jobId = body.jobId ?? uuidv4();
+    const jobId = body.jobId ?? randomUUID();
     this.progressService.create(jobId);
 
     // Run in background

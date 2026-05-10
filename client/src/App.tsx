@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Section, ScriptResult, VideoItem } from './types';
+import type { Section, ScriptResult } from './types';
 import NewsSection from './components/NewsSection';
 import ScriptSection from './components/ScriptSection';
 import VideoSection from './components/VideoSection';
@@ -10,7 +10,6 @@ import './App.css';
 export default function App() {
   const [section, setSection] = useState<Section>('news');
   const [script, setScript] = useState<ScriptResult | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [outputFilename, setOutputFilename] = useState('');
 
   const go = (s: Section) => setSection(s);
@@ -42,7 +41,7 @@ export default function App() {
         {section === 'video' && script && (
           <VideoSection
             bgKeyword={script.bg_keyword}
-            onGenerate={(video) => setSelectedVideo(video)}
+            onGenerate={() => {}}
             script={script}
             onOutputReady={(filename) => {
               setOutputFilename(filename);
@@ -53,7 +52,7 @@ export default function App() {
         {section === 'complete' && (
           <CompleteSection
             filename={outputFilename}
-            onReset={() => { setScript(null); setSelectedVideo(null); go('news'); }}
+            onReset={() => { setScript(null); go('news'); }}
           />
         )}
       </main>

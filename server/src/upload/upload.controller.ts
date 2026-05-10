@@ -7,7 +7,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join, extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Controller('upload-audio')
 export class UploadController {
@@ -17,7 +17,7 @@ export class UploadController {
       storage: diskStorage({
         destination: join(__dirname, '..', '..', 'uploads'),
         filename: (_req, file, cb) => {
-          cb(null, `${uuidv4()}${extname(file.originalname)}`);
+          cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
       fileFilter: (_req, file, cb) => {

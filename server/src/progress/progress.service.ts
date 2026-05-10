@@ -12,6 +12,9 @@ export class ProgressService {
   private store = new Map<string, ProgressState>();
 
   create(jobId: string) {
+    if (this.store.has(jobId)) {
+      return this.store.get(jobId)!.subject.asObservable();
+    }
     const subject = new Subject<{ data: { percent: number; message: string } }>();
     this.store.set(jobId, { percent: 0, message: '시작 중...', subject });
     return subject.asObservable();
