@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import { createWriteStream, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { pipeline } from 'stream/promises';
 
@@ -41,38 +41,53 @@ export class VideoService {
     return outputPath;
   }
 
-  private toSrtTime(seconds: number): string {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    const ms = Math.round((seconds % 1) * 1000);
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+  private escapeDrawtext(text: string): string {
+    return text
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/:/g, '\\:')
+      .replace(/\n+/g, ' ')
+      .trim();
   }
 
-  generateSrtContent(script: { hook: string; body: string; cta: string }, totalDuration: number): string {
+  private buildSubtitleFilters(
+    script: { hook: string; body: string; cta: string },
+    totalDuration: number,
+    inputLabel: string,
+    outputLabel: string,
+  ): string[] {
+    const fontPath = '/System/Library/Fonts/AppleSDGothicNeo.ttc';
+    const fontOpt = existsSync(fontPath) ? `fontfile='${fontPath}':` : '';
+
     const bodyLines = script.body
       .split('\n')
       .filter(l => l.trim())
       .slice(0, 3)
       .map(l => l.replace(/^\d+\.\s*/, ''));
 
-    const segments = [script.hook, ...bodyLines, script.cta].filter(Boolean);
-    const totalChars = segments.reduce((sum, t) => sum + t.length, 0) || 1;
+    const segments = [script.hook, ...bodyLines, script.cta]
+      .filter(Boolean)
+      .map(t => t.replace(/\n+/g, ' ').trim());
 
-    const entries: string[] = [];
-    let idx = 1;
-    let cursor = 0;
-
-    for (const text of segments) {
-      const segDuration = (text.length / totalChars) * totalDuration;
-      const start = cursor;
-      const end = Math.min(cursor + segDuration, totalDuration);
-      entries.push(`${idx++}\n${this.toSrtTime(start)} --> ${this.toSrtTime(end)}\n${text}\n`);
-      cursor = end;
-      if (cursor >= totalDuration) break;
+    if (segments.length === 0) {
+      return [`${inputLabel}copy${outputLabel}`];
     }
 
-    return entries.join('\n');
+    const totalChars = segments.reduce((sum, t) => sum + t.length, 0) || 1;
+    let cursor = 0;
+
+    return segments.map((text, i) => {
+      const duration = (text.length / totalChars) * totalDuration;
+      const start = parseFloat(cursor.toFixed(3));
+      const end = parseFloat(Math.min(cursor + duration, totalDuration).toFixed(3));
+      cursor += duration;
+
+      const inLabel = i === 0 ? inputLabel : `[dts${i}]`;
+      const outLabel = i === segments.length - 1 ? outputLabel : `[dts${i + 1}]`;
+      const escaped = this.escapeDrawtext(text);
+
+      return `${inLabel}drawtext=${fontOpt}text='${escaped}':fontsize=44:fontcolor=white:borderw=3:bordercolor=black@0.8:x=(w-text_w)/2:y=h-130:fix_bounds=1:enable='between(t,${start},${end})'${outLabel}`;
+    });
   }
 
   private getAudioDuration(audioPath: string): Promise<number> {
@@ -97,8 +112,7 @@ export class VideoService {
     const audioDuration = await this.getAudioDuration(audio);
     const totalDuration = Math.min(audioDuration, 60);
 
-    const srtPath = join(tempDir, `${Date.now()}.srt`);
-    writeFileSync(srtPath, this.generateSrtContent(script, totalDuration), 'utf8');
+    const subtitleFilters = this.buildSubtitleFilters(script, totalDuration, '[bg]', '[bgout]');
 
     return new Promise((resolve, reject) => {
       ffmpeg()
@@ -106,7 +120,7 @@ export class VideoService {
         .input(audio)
         .complexFilter([
           '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setpts=PTS-STARTPTS[bg]',
-          `[bg]subtitles=filename='${srtPath}':force_style='FontSize=52,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,Outline=3,Bold=1,Alignment=2,MarginV=80'[bgout]`,
+          ...subtitleFilters,
           '[0:a]volume=0.08[bgaudio]',
           '[1:a]volume=1.0[voice]',
           '[bgaudio][voice]amix=inputs=2:duration=longest[audio]',
@@ -128,10 +142,7 @@ export class VideoService {
           const pct = Math.min(Math.round((p.percent ?? 0) * 0.3 + 55), 85);
           onProgress(pct);
         })
-        .on('end', () => {
-          try { require('fs').unlinkSync(srtPath); } catch {}
-          resolve(outputPath);
-        })
+        .on('end', () => resolve(outputPath))
         .on('error', reject)
         .run();
     });
