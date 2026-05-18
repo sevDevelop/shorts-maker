@@ -41,35 +41,47 @@ export class VideoService {
     return outputPath;
   }
 
-  generateSrtContent(script: { hook: string; body: string; cta: string }): string {
-    const lines: string[] = [];
-    let idx = 1;
+  private toSrtTime(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.round((seconds % 1) * 1000);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+  }
 
-    const addEntry = (start: string, end: string, text: string) => {
-      lines.push(`${idx++}\n${start} --> ${end}\n${text}\n`);
-    };
-
-    addEntry('00:00:00,000', '00:00:04,000', script.hook);
-
+  generateSrtContent(script: { hook: string; body: string; cta: string }, totalDuration: number): string {
     const bodyLines = script.body
       .split('\n')
       .filter(l => l.trim())
-      .slice(0, 3);
+      .slice(0, 3)
+      .map(l => l.replace(/^\d+\.\s*/, ''));
 
-    const timings = [
-      ['00:00:05,000', '00:00:20,000'],
-      ['00:00:21,000', '00:00:36,000'],
-      ['00:00:37,000', '00:00:52,000'],
-    ];
+    const segments = [script.hook, ...bodyLines, script.cta].filter(Boolean);
+    const totalChars = segments.reduce((sum, t) => sum + t.length, 0) || 1;
 
-    bodyLines.forEach((line, i) => {
-      const t = timings[i];
-      if (t) addEntry(t[0], t[1], line.replace(/^\d+\.\s*/, ''));
+    const entries: string[] = [];
+    let idx = 1;
+    let cursor = 0;
+
+    for (const text of segments) {
+      const segDuration = (text.length / totalChars) * totalDuration;
+      const start = cursor;
+      const end = Math.min(cursor + segDuration, totalDuration);
+      entries.push(`${idx++}\n${this.toSrtTime(start)} --> ${this.toSrtTime(end)}\n${text}\n`);
+      cursor = end;
+      if (cursor >= totalDuration) break;
+    }
+
+    return entries.join('\n');
+  }
+
+  private getAudioDuration(audioPath: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(audioPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata.format.duration ?? 60);
+      });
     });
-
-    addEntry('00:00:53,000', '00:01:00,000', script.cta);
-
-    return lines.join('\n');
   }
 
   async createShorts(
@@ -82,8 +94,11 @@ export class VideoService {
     const tempDir = join(__dirname, '..', '..', 'temp');
     if (!existsSync(tempDir)) mkdirSync(tempDir, { recursive: true });
 
+    const audioDuration = await this.getAudioDuration(audio);
+    const totalDuration = Math.min(audioDuration, 60);
+
     const srtPath = join(tempDir, `${Date.now()}.srt`);
-    writeFileSync(srtPath, this.generateSrtContent(script), 'utf8');
+    writeFileSync(srtPath, this.generateSrtContent(script, totalDuration), 'utf8');
 
     return new Promise((resolve, reject) => {
       ffmpeg()
@@ -91,15 +106,15 @@ export class VideoService {
         .input(audio)
         .complexFilter([
           '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setpts=PTS-STARTPTS[bg]',
+          `[bg]subtitles=filename='${srtPath}':force_style='FontSize=52,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,Outline=3,Bold=1,Alignment=2,MarginV=80'[bgout]`,
           '[0:a]volume=0.08[bgaudio]',
           '[1:a]volume=1.0[voice]',
-          '[bgaudio][voice]amix=inputs=2:duration=first[audio]',
+          '[bgaudio][voice]amix=inputs=2:duration=longest[audio]',
         ])
         .outputOptions([
-          '-map [bg]',
+          '-map [bgout]',
           '-map [audio]',
-          `-vf subtitles=${srtPath}:force_style='FontSize=52,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,Outline=3,Bold=1,Alignment=2,MarginV=80'`,
-          '-t 60',
+          `-t ${totalDuration}`,
           '-c:v libx264',
           '-preset fast',
           '-crf 23',

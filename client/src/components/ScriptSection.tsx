@@ -16,8 +16,13 @@ const Field = ({ label, value, onChange, rows = 3 }: {
 );
 
 export default function ScriptSection({ script, onScriptChange, onNext }: Props) {
-  const update = (key: keyof ScriptResult) => (val: string) =>
-    onScriptChange({ ...script, [key]: val });
+  const update = (key: keyof ScriptResult) => (val: string) => {
+    const updated = { ...script, [key]: val };
+    if (key === 'hook' || key === 'body' || key === 'cta') {
+      updated.full_script = [updated.hook, updated.body, updated.cta].filter(Boolean).join('\n\n');
+    }
+    onScriptChange(updated);
+  };
 
   return (
     <div>

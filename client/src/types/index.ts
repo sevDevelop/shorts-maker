@@ -26,4 +26,4 @@ export interface VideoItem {
   height: number;
 }
 
-export type Section = 'news' | 'script' | 'video' | 'generating' | 'complete';
+export type Section = 'news' | 'script' | 'video' | 'complete';

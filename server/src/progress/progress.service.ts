@@ -39,7 +39,8 @@ export class ProgressService {
   error(jobId: string, message: string) {
     const state = this.store.get(jobId);
     if (state) {
-      state.subject.error({ data: { percent: -1, message } });
+      state.subject.next({ data: { percent: -1, message } });
+      state.subject.complete();
       this.store.delete(jobId);
     }
   }

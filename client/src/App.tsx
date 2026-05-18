@@ -41,7 +41,6 @@ export default function App() {
         {section === 'video' && script && (
           <VideoSection
             bgKeyword={script.bg_keyword}
-            onGenerate={() => {}}
             script={script}
             onOutputReady={(filename) => {
               setOutputFilename(filename);

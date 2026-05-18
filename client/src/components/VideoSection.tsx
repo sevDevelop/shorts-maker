@@ -5,11 +5,10 @@ import type { VideoItem, ScriptResult } from '../types';
 interface Props {
   bgKeyword: string;
   script: ScriptResult;
-  onGenerate: (video: VideoItem) => void;
   onOutputReady: (filename: string) => void;
 }
 
-export default function VideoSection({ bgKeyword, script, onGenerate, onOutputReady }: Props) {
+export default function VideoSection({ bgKeyword, script, onOutputReady }: Props) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [audioType, setAudioType] = useState<'ai' | 'upload'>('ai');
@@ -70,6 +69,7 @@ export default function VideoSection({ bgKeyword, script, onGenerate, onOutputRe
       };
       es.onerror = () => {
         es.close();
+        setError('서버 연결이 끊어졌습니다. 다시 시도해주세요.');
         setGenerating(false);
       };
 
@@ -81,8 +81,6 @@ export default function VideoSection({ bgKeyword, script, onGenerate, onOutputRe
         uploadedAudioPath,
         voice,
       });
-
-      onGenerate(selectedVideo);
     } catch {
       setError('영상 생성 중 오류가 발생했습니다.');
       setGenerating(false);

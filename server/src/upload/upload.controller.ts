@@ -27,6 +27,6 @@ export class UploadController {
     }),
   )
   uploadAudio(@UploadedFile() file: Express.Multer.File) {
-    return { path: `/uploads/${file.filename}`, filename: file.filename };
+    return { path: file.path, filename: file.filename };
   }
 }
