@@ -21,8 +21,10 @@ export class NewsService {
   };
 
   async fetchNews(category: string, count = 10): Promise<NewsItem[]> {
-    const query = this.categoryMap[category] ?? encodeURIComponent(category);
-    const url = `https://news.google.com/rss/search?q=${query}&hl=ko&gl=KR&ceid=KR:ko`;
+    const decoded = decodeURIComponent(category);
+    const rawQuery = this.categoryMap[decoded] ?? decoded;
+    const encodedQuery = rawQuery.split('+').map(t => encodeURIComponent(t)).join('+');
+    const url = `https://news.google.com/rss/search?q=${encodedQuery}&hl=ko&gl=KR&ceid=KR:ko`;
 
     try {
       const feed = await this.parser.parseURL(url);
@@ -33,7 +35,8 @@ export class NewsService {
         published: item.pubDate ?? '',
         source: item.creator ?? (item as any)['dc:creator'] ?? '',
       }));
-    } catch {
+    } catch (err) {
+      console.error('[NewsService] fetch error:', err);
       return [];
     }
   }
