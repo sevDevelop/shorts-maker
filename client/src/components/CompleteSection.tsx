@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface Props {
   filename: string;
   onReset: () => void;
@@ -5,6 +7,23 @@ interface Props {
 
 export default function CompleteSection({ filename, onReset }: Props) {
   const videoUrl = `http://localhost:3001/output/${filename}`;
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(videoUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div>
@@ -19,21 +38,14 @@ export default function CompleteSection({ filename, onReset }: Props) {
       </div>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-        <a
-          href={videoUrl}
-          download={filename}
-          style={{
-            background: '#00d084',
-            color: '#000',
-            padding: '12px 28px',
-            borderRadius: 8,
-            fontWeight: 700,
-            fontSize: 15,
-            textDecoration: 'none',
-          }}
+        <button
+          className="btn-primary"
+          onClick={handleDownload}
+          disabled={downloading}
+          style={{ padding: '12px 28px', fontSize: 15 }}
         >
-          다운로드
-        </a>
+          {downloading ? '다운로드 중...' : '다운로드'}
+        </button>
         <button className="btn-secondary" onClick={onReset}>
           새 영상 만들기
         </button>
