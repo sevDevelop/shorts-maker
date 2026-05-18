@@ -3,6 +3,7 @@ import type { ScriptResult } from '../types';
 interface Props {
   script: ScriptResult;
   onScriptChange: (s: ScriptResult) => void;
+  onBack: () => void;
   onNext: () => void;
 }
 
@@ -15,7 +16,7 @@ const Field = ({ label, value, onChange, rows = 3 }: {
   </div>
 );
 
-export default function ScriptSection({ script, onScriptChange, onNext }: Props) {
+export default function ScriptSection({ script, onScriptChange, onBack, onNext }: Props) {
   const update = (key: keyof ScriptResult) => (val: string) => {
     const updated = { ...script, [key]: val };
     if (key === 'hook' || key === 'body' || key === 'cta') {
@@ -26,6 +27,7 @@ export default function ScriptSection({ script, onScriptChange, onNext }: Props)
 
   return (
     <div>
+      <button onClick={onBack} className="btn-back">← 뒤로</button>
       <h2 className="section-title">스크립트 편집</h2>
 
       <Field label="훅 (첫 3초)" value={script.hook} onChange={update('hook')} rows={2} />

@@ -99,3 +99,18 @@
   font-size: 14px;
   margin-top: 8px;
 }
+
+.btn-back {
+  background: none;
+  color: #666;
+  font-size: 14px;
+  padding: 0;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.btn-back:hover:not(:disabled) {
+  opacity: 1;
+  color: #fff;
+}

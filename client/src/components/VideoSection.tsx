@@ -5,10 +5,11 @@ import type { VideoItem, ScriptResult } from '../types';
 interface Props {
   bgKeyword: string;
   script: ScriptResult;
+  onBack: () => void;
   onOutputReady: (filename: string) => void;
 }
 
-export default function VideoSection({ bgKeyword, script, onOutputReady }: Props) {
+export default function VideoSection({ bgKeyword, script, onBack, onOutputReady }: Props) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [audioType, setAudioType] = useState<'ai' | 'upload'>('ai');
@@ -89,6 +90,7 @@ export default function VideoSection({ bgKeyword, script, onOutputReady }: Props
 
   return (
     <div>
+      <button onClick={onBack} className="btn-back">← 뒤로</button>
       <h2 className="section-title">영상 설정</h2>
 
       <div style={{ marginBottom: 24 }}>

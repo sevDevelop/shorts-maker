@@ -35,6 +35,7 @@ export default function App() {
           <ScriptSection
             script={script}
             onScriptChange={setScript}
+            onBack={() => go('news')}
             onNext={() => go('video')}
           />
         )}
@@ -42,6 +43,7 @@ export default function App() {
           <VideoSection
             bgKeyword={script.bg_keyword}
             script={script}
+            onBack={() => go('script')}
             onOutputReady={(filename) => {
               setOutputFilename(filename);
               go('complete');
